@@ -1,0 +1,22 @@
+version: "3.8"
+services:
+  rsyslog-latest:
+    build: &rsyslog
+      dockerfile: rsyslog/Dockerfile
+      context: .
+  rsyslog-alpine:
+    build:
+      <<: [ *rsyslog ]
+      args:
+        BASE_IMAGE: "corpusops/alpine-bare:latest"
+  rsyslog-debian:
+    build:
+      <<: [ *rsyslog ]
+      args:
+        BASE_IMAGE: "corpusops/debian-bare:sid-slim"
+  rsyslog-ubuntu:
+    build:
+      <<: [ *rsyslog ]
+      args:
+        BASE_IMAGE: "corpusops/ubuntu-bare:latest"
+

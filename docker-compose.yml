@@ -1,0 +1,17 @@
+version: "3.8"
+x-templates:
+  x-env: &env
+    env_file: [.env]
+services:
+  rsyslog-latest:
+    <<: [ *env ]
+    image: corpusops/rsyslog:latest
+  rsyslog-alpine:
+    <<: [ *env ]
+    image: corpusops/rsyslog:alpine
+  rsyslog-debian:
+    <<: [ *env ]
+    image: corpusops/rsyslog:debian
+  rsyslog-ubuntu:
+    <<: [ *env ]
+    image: corpusops/rsyslog:ubuntu

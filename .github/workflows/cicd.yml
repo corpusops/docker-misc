@@ -1,0 +1,53 @@
+env:
+  DOCKER_BUILDKIT: "1"
+  COMPOSE_DOCKER_CLI_BUILD: "1"
+  BUILDKIT_PROGRESS: "plain"
+  NO_SQUASH: ""
+  RELEASABLE_REPOS: "^corpusops/"
+  RELEASABLE_BRANCHES: "^(refs/heads/)?(master|main|workflows)$"
+jobs:
+  r:
+    runs-on: ubuntu-20.04
+    env: {IMAGES: "${{matrix.IMAGES}}",
+          COMPOSE_FILE: "docker-compose.yml:docker-compose-build.yml"}
+    steps:
+      - name: Set vars
+        run: |-
+            if ( echo "$GITHUB_REF" | egrep -q "${RELEASABLE_BRANCHES}" ) \
+            && ( echo "$GITHUB_REPOSITORY" | egrep -q "${RELEASABLE_REPOS}" )
+            then releasable=true;else releasable=false;fi
+            echo "::set-output name=releasable::$releasable"
+            echo "::set-output name=silent::$(echo $silent)"
+        id: v
+      - uses: docker/login-action@v1
+        with: {username: "${{ secrets.DOCKER_HUB_USERNAME }}", password: "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}"}
+      - name: Activate docker experimental
+        run: |-
+          sudo bash -exc "service docker stop;python -c \"d='/etc/docker/daemon.json';\
+          import json;c=json.load(open(d));c['experimental']=True;\
+          open(d, 'w').write(json.dumps(c))\";systemctl restart docker"
+      - uses: actions/checkout@v2
+      - name: build & release
+        run: set -ex;
+             ln -s .env.dist .env;
+             for IMAGE in ${IMAGES};do
+             t=${IMAGE};
+             REPO=$(echo $IMAGE|sed -re "s/(.*)[/]([^:]+):([^:]+)$/\1/g");
+             IMG=$(echo $IMAGE|sed -re "s/(.*)[/]([^:]+):([^:]+)$/\2/g");
+             IMGV=$(echo $IMAGE|sed -re "s/(.*)[/]([^:]+):([^:]+)$/\3/g");
+             DPATH=".";
+             docker-compose build $IMG-$IMGV;
+             if [ "x${{steps.v.outputs.releasable}}" = "xtrue" ];then docker push ${t}${i};fi;
+             done
+    strategy:
+      max-parallel: 5
+      fail-fast: false
+      matrix:
+        IMAGES:
+        - "corpusops/rsyslog:latest corpusops/rsyslog:alpine"
+        - "corpusops/rsyslog:ubuntu"
+        - "corpusops/rsyslog:debian"
+on:
+  push:
+  workflow_dispatch:
+  schedule: [{cron: '1 0 1,3,5,10,15,17,19 * *'}]
