@@ -39,7 +39,7 @@ services:
     image: corpuspops/rsyslog
     ports: ["127.0.0.1:1514:10514"]
     # ensure no syslog log loop
-    logging: {driver: "json-file", max-size: 10, max-file: "3"}
+    logging: {driver: "json-file", options: {max-size: "10M", max-file: "50"}}
   someservice:
     <<: [ *base ]
     image: some/service
